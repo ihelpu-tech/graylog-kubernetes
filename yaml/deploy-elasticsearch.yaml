@@ -1,0 +1,15 @@
+---
+apiVersion: elasticsearch.k8s.elastic.co/v1
+kind: Elasticsearch
+metadata:
+  name: graylog-elasticsearch
+  namespace: graylog
+  labels:
+    app: graylog
+spec:
+  version: 7.10.2
+  nodeSets:
+  - name: default
+    count: 3
+    config:
+      node.store.allow_mmap: false
