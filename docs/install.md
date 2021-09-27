@@ -32,12 +32,13 @@ This guide will use Elastic Cloud on Kubernetes (ECK) to install Elasticsearch. 
 	For status updates or troubleshooting, you can monitor the logs by running: `kubectl -n elastic-system logs -f statefulset.apps/elastic-operator`
 
 1. Configure and install Elasticsearch  
-	* [Click to view Elastic Co's documentation for deploying Elasticsearch][elasticsearch]  
+	* [Click to view Elastic Co's documentation for deploying Elasticsearch][elasticsearch] 
+	* We will deploy a modified version of Elastic's official file: 
 	```
 	kubectl apply -f yaml/deploy-elasticsearch.yaml
 	```
 
-	Elasticsearch 7.10 is the lastest version that is support by graylog according to [Graylog's Documentation](https://docs.graylog.org/en/4.1/pages/installation.html#system-requirements).  
+	Elasticsearch 7.10 is the lastest version that is supported by graylog according to [Graylog's Documentation](https://docs.graylog.org/en/4.1/pages/installation.html#system-requirements).  
 
 	The version can be updated by editing `spec.version` in the file `yaml/deploy-elasticsearch.yaml`  
 
@@ -49,12 +50,12 @@ This guide will use Elastic Cloud on Kubernetes (ECK) to install Elasticsearch. 
 MongoDB will be installed using the Community Operator. This guide follows the documentation found on MongoDB's github page.
 [MongoDB Kubernetes Community Operator][mongo]  
 
-<!-- * Clone the MongoDB Community Operator Repository
+* Clone the MongoDB Community Operator Repository
 	```
 	git clone https://github.com/mongodb/mongodb-kubernetes-operator.git
-	``` -->
+	```
 The Mongo Operator gives us the option to install in the same namespace as resources or a different namespace. In keeping consistency with ECK, we will create a new namespace `mongo-system` and install the mongo operator in it.\
-We will also need to make a few changes from the sample yaml files. This guide has already made the modifications and saves them as new yaml files. Please read the [install documentation][mongoinstall] if you need to customize the configuration for your cluster.
+We will also need to make a few changes from the sample yaml files. This guide has already made the modifications and saves them as new yaml files. Please read the [Mongo install documentation][mongoinstall] if you need to customize the configuration for your cluster.
 
 ### Preparation
 We need to configure the mongo operator to watch in different namespaces.
@@ -74,7 +75,7 @@ We need to configure the mongo operator to watch in different namespaces.
 
 The MongoDB Community Kubernetes Operator is a [Custom Resource Definition][crd] and a controller.
 
-1. Change to the directory in which you cloned the repository.
+1. Change to the directory in which you cloned the MongoBD repository.
 	```
 	cd mongodb-kubernetes-operator/
 	```
@@ -118,8 +119,6 @@ The MongoDB Community Kubernetes Operator is a [Custom Resource Definition][crd]
 
 View the [Mongo Update/Install Documentation][mongoinstall] for information about upgrading the operator.
 
-Optional: View the docs on how to [test the MongoDB connection][testmongo]
-
 ### Install MongoDB Resources
 *Elements taken from the [mongo deploy docs][mongodeploy]:*
 
@@ -128,22 +127,131 @@ Optional: View the docs on how to [test the MongoDB connection][testmongo]
 	cd ..
 	```
 
-2. Run the following script to deploy a mongoDB replica set:
+1. Run the following script to deploy a mongoDB replica set:
 	```
-	future-script.bash
+	./deploy-mongo.bash 
 	```
 	* The script automates the process found on the [mongo deploy docs][mongodeploy]. 
-	* 
+
+1. Verify that the MongoDB Replicaset is ready:
+	```
+	kubectl get mongodbcommunity --namespace graylog
+	```
+
+Optional: View the docs on how to [test the MongoDB connection][testmongo]
 
 ## Install Graylog
+
+*Documentation for Graylog can be found on here: [Graylog Docs][graylogdocs]*
+
+Graylog can be installed two ways:
+* [Manually](###manual-graylog-installation)
+* [Automatically](###automatic-graylog-installation)
+
+I would recommend reviewing how the manual installation works first before using the automatic method.
+
+### Manual Graylog Installation
+
+The configuration for Graylog will be defined by a [ConfigMap][configmap]. The values of the configmap are based on the [Graylog conf file][graylogconf]. Changes will need to be made to suite your setup.
+
+The config map can be deployed manually by editing [graylog-configmap.yaml][samplemap]. 
+
+We need to make some basic changes to the graylog configuration before we apply the yaml file. If these changes aren't made, the deployment will fail. The critical changes are listed in the order they appeared in the [default graylog configuration][graylogconf].
+
+1. `password_secret`\
+	You MUST set a secret to secure/pepper the stored user passwords here. Use at least 64 characters.
+
+	Generate one by using for example:
+	```
+	pwgen -N 1 -s 96
+	```
+	ATTENTION: This value must be the same on all Graylog nodes in the cluster. Changing this value after installation will render all user sessions and encrypted values in the database invalid. (e.g. encrypted access tokens)
+
+1. `root_password_sha2`\
+	You MUST specify a hash password for the root user (which you only need to initially set up the system and in case you lose connectivity to your authentication backend) This password cannot be changed using the API or via the web interface. If you need to change it, modify it in this file.
+
+	Create one by using for example:
+	```
+	echo -n yourpassword | shasum -a 256
+	```
+
+1. `elasticsearch_hosts`\
+	Specify the elasticsearch host. This can be an in cluster or out of cluster resource. This guide will use and recommend that you use the ECK instance that was previously deployed in this guide.
+
+	- First, we need to find the domain name of elasticsearch cluster.
+
+		List all of the services in the namespace:
+		```
+		kubectl get services --namespace graylog
+		``` 
+		Look for the `es-http` service:
+		```
+		$ kubectl get services --namespace graylog
+		NAME                                 TYPE        CLUSTER-IP       EXTERNAL-IP   PORT(S)     AGE
+		graylog-elasticsearch-es-default     ClusterIP   None             <none>        9200/TCP    4d5h
+		graylog-elasticsearch-es-http        ClusterIP   10.105.118.252   <none>        9200/TCP    4d5h
+		graylog-elasticsearch-es-transport   ClusterIP   None             <none>        9300/TCP    4d5h
+		graylog-mongodb-svc                  ClusterIP   None             <none>        27017/TCP   65m
+		```
+		In this example, the service type is set to `ClusterIP` with an IP of `10.105.118.252`. Note that the IP is prone to changes and will most likely be different in your setup. We will use DNS to connect to Elasticsearch so a Domain Name Service like [CoreDNS][coredns] is required.
+
+		If you hvae been following the guide so far with the default values, the DNS name for elasticsearch will be:
+		```
+		graylog-elasticsearch-es-http.graylog.svc.cluster.local
+		```
+		This follows the format of:
+		```
+		<elasticsearch-clustername>-es-http.<namespace>.svc.cluster.local
+		```
+		**Troubleshooting DNS Problems:**\
+		[DNS Utils][dnsutils] is pod designed for troubleshooting issues with DNS. It can be deployed to your cluster by applying the following command:
+
+		<!-- Work In Progress: -->
+		
+		<!-- ```
+		cat <<EOF
+		---
+		apiVersion: v1
+		kind: Pod
+		metadata:
+		name: dnsutils
+		namespace: graylog
+		spec:
+		containers:
+		- name: dnsutils
+		image: gcr.io/kubernetes-e2e-test-images/dnsutils:1.3
+		command:
+		- sleep
+		- "3600"
+		imagePullPolicy: IfNotPresent
+		restartPolicy: Always
+		EOF | kubectl apply -f -
+		``` -->
+
+Then apply the following command:
+```
+kubectl apply -f yaml/graylog/graylog-configmap.yaml
+```
+
+### Automatic Graylog Installation
+*The automatic deployment script is still a work in progress. Check back later.*
 
 
 
 
 [eck]: https://www.elastic.co/downloads/elastic-cloud-kubernetes
 [elasticsearch]: https://www.elastic.co/guide/en/cloud-on-k8s/1.8/k8s-deploy-elasticsearch.html
+
 [mongo]: https://github.com/mongodb/mongodb-kubernetes-operator
 [mongoinstall]: https://github.com/mongodb/mongodb-kubernetes-operator/blob/master/docs/install-upgrade.md
 [mongodeploy]: https://github.com/mongodb/mongodb-kubernetes-operator/blob/master/docs/deploy-configure.md
-[testmongo]: docs/test-mongo-connection.md
+[testmongo]: ../docs/test-mongo-connection.md
+
 [crd]: https://kubernetes.io/docs/concepts/extend-kubernetes/api-extension/custom-resources/
+[configmap]: https://kubernetes.io/docs/concepts/configuration/configmap/
+[coredns]: https://coredns.io/plugins/kubernetes/
+[dnsutils]: https://kubernetes.io/docs/tasks/administer-cluster/dns-debugging-resolution/
+
+[graylogdocs]: https://docs.graylog.org/en/4.1/
+[graylogconf]: https://github.com/Graylog2/graylog-docker/blob/4.1/config/graylog.conf
+[samplemap]: ../yaml/graylog/graylog-configmap.yaml
