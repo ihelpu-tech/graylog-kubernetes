@@ -35,12 +35,12 @@ This guide will use Elastic Cloud on Kubernetes (ECK) to install Elasticsearch. 
 	* [Click to view Elastic Co's documentation for deploying Elasticsearch][elasticsearch] 
 	* We will deploy a modified version of Elastic's official file: 
 	```
-	kubectl apply -f yaml/deploy-elasticsearch.yaml
+	kubectl apply -f yaml/elastic/deploy-elasticsearch.yaml
 	```
 
 	Elasticsearch 7.10 is the lastest version that is supported by graylog according to [Graylog's Documentation](https://docs.graylog.org/en/4.1/pages/installation.html#system-requirements).  
 
-	The version can be updated by editing `spec.version` in the file `yaml/deploy-elasticsearch.yaml`  
+	The version can be updated by editing `spec.version` in the file `yaml/elastic/deploy-elasticsearch.yaml`  
 
 	The number of node sets can be changed by editing `spec.nodeSets.count`. (The default is 1.)
 
@@ -176,70 +176,30 @@ We need to make some basic changes to the graylog configuration before we apply 
 	```
 
 1. `elasticsearch_hosts`\
-	Specify the elasticsearch host. This can be an in cluster or out of cluster resource. This guide will use and recommend that you use the ECK instance that was previously deployed in this guide.
-
-	- First, we need to find the domain name of elasticsearch cluster.
-
-		List all of the services in the namespace:
-		```
-		kubectl get services --namespace graylog
-		``` 
-		Look for the `es-http` service:
-		```
-		$ kubectl get services --namespace graylog
-		NAME                                 TYPE        CLUSTER-IP       EXTERNAL-IP   PORT(S)     AGE
-		graylog-elasticsearch-es-default     ClusterIP   None             <none>        9200/TCP    4d5h
-		graylog-elasticsearch-es-http        ClusterIP   10.105.118.252   <none>        9200/TCP    4d5h
-		graylog-elasticsearch-es-transport   ClusterIP   None             <none>        9300/TCP    4d5h
-		graylog-mongodb-svc                  ClusterIP   None             <none>        27017/TCP   65m
-		```
-		In this example, the service type is set to `ClusterIP` with an IP of `10.105.118.252`. Note that the IP is prone to changes and will most likely be different in your setup. We will use DNS to connect to Elasticsearch so a Domain Name Service like [CoreDNS][coredns] is required.
-
-		If you hvae been following the guide so far with the default values, the DNS name for elasticsearch will be:
-		```
-		graylog-elasticsearch-es-http.graylog.svc.cluster.local
-		```
-		This follows the format of:
-		```
-		<elasticsearch-clustername>-es-http.<namespace>.svc.cluster.local
-		```
-		**Troubleshooting DNS Problems:**\
-		[DNS Utils][dnsutils] is pod designed for troubleshooting issues with DNS. It will install in the default namespace. This can be changed by downloading the yaml file and editing `metadata.namespace` to your namespace.
-		
-		```
-		wget https://k8s.io/examples/admin/dns/dnsutils.yaml
-		vim dnsutils.yaml
-		kubectl apply -f dnsutils.yaml
-		```
-
-		Once the DNS utils pod is running, use it to run `nslookup` to get the domain name of the service.
-		```
-		kubectl exec --namespace graylog -t -i pod/dnsutils -- nslookup <service name>
-		```
-		Running the command returns:
-		```
-		$ kubectl exec --namespace graylog -t -i pod/dnsutils -- nslookup graylog-elasticsearch-es-http
-		Server:         10.96.0.10
-		Address:        10.96.0.10#53
-
-		Name:   graylog-elasticsearch-es-http.graylog.svc.cluster.local
-		Address: 10.105.213.196
-		```
-		We are looking for the name of the elastic cluster. This is `graylog-elasticsearch-es-http.graylog.svc.cluster.local` in our case.
-	- Use the domain name to fill in the connection string.
-		`elasticsearch_hosts = http://graylog-elasticsearch-es-http.graylog.svc.cluster.local:9200`
+	Specify the elasticsearch host. This can be an in cluster or out of cluster resource. See [Connecting Elasticsearch](elasticsearch.md) for more information on testing Elasticsearch.	
 
 1. `mongodb_uri`\
-	Set the connection string for MongoDB. The same steps from finding the Elasticserach DNS entry apply for finding the Mongo DNS name if you are deploying mongo within the cluster. 
+	Set the connection string for MongoDB. 
 
 	If you are using MongoDB Atlas, the connection string from the node.js present seems to work just fine as long as you update the username and password.
 
 
+There are also other options like timezone and root username that helpful to configure.
 
-Then apply the following command:
+
+Once you have made the changes to the configmap, apply it using the following command:
 ```
 kubectl apply -f yaml/graylog/graylog-configmap.yaml
 ```
+
+#### Deploy Graylog 
+Now it's time for the fun part. Actually deploying Graylog. Let's get into it:
+
+
+
+
+
+
 
 ### Automatic Graylog Installation
 *The automatic deployment script is still a work in progress. Check back later.*

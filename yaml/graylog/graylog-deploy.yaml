@@ -1,0 +1,30 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: graylog-deployment
+  namespace: graylog
+  labels:
+    app: graylog
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: graylog
+  template:
+    metadata:
+      labels:
+        app: graylog
+    spec:
+      containers:
+      - name: graylog
+        image: graylog/graylog:4.1-jre11
+        # Testing command to prevent the pod from dying while under development. 
+        command: ['sh', '-c', 'echo "Hello, Kubernetes!" && sleep 3600']
+        volumeMounts:
+        - name: graylog-configmap
+          mountPath: /etc/graylog/server/
+      restartPolicy: Always     
+      volumes:
+      - name: graylog-configmap
+        configMap:
+          name: graylog-configmap

@@ -9,7 +9,7 @@ data:
   # Values were retrived from the default graylog configuration file.
   # https://raw.githubusercontent.com/Graylog2/graylog-docker/4.1/config/graylog.conf
   # Comments where removed.
-  graylog.conf: |
+  server.conf: |
     # Welcome to k8s
     is_master = true
     node_id_file = /usr/share/graylog/data/config/node-id
