@@ -28,6 +28,5 @@ hs_err_pid*
 # Ignore cloned mongo repository
 /mongodb-kubernetes-operator
 
-# DNS utils yaml
-dnsutils.yaml
-testDNSdeploy.bash
+# testing
+/testing

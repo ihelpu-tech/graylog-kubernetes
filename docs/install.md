@@ -204,29 +204,37 @@ We need to make some basic changes to the graylog configuration before we apply 
 		<elasticsearch-clustername>-es-http.<namespace>.svc.cluster.local
 		```
 		**Troubleshooting DNS Problems:**\
-		[DNS Utils][dnsutils] is pod designed for troubleshooting issues with DNS. It can be deployed to your cluster by applying the following command:
-
-		<!-- Work In Progress: -->
+		[DNS Utils][dnsutils] is pod designed for troubleshooting issues with DNS. It will install in the default namespace. This can be changed by downloading the yaml file and editing `metadata.namespace` to your namespace.
 		
-		<!-- ```
-		cat <<EOF
-		---
-		apiVersion: v1
-		kind: Pod
-		metadata:
-		name: dnsutils
-		namespace: graylog
-		spec:
-		containers:
-		- name: dnsutils
-		image: gcr.io/kubernetes-e2e-test-images/dnsutils:1.3
-		command:
-		- sleep
-		- "3600"
-		imagePullPolicy: IfNotPresent
-		restartPolicy: Always
-		EOF | kubectl apply -f -
-		``` -->
+		```
+		wget https://k8s.io/examples/admin/dns/dnsutils.yaml
+		vim dnsutils.yaml
+		kubectl apply -f dnsutils.yaml
+		```
+
+		Once the DNS utils pod is running, use it to run `nslookup` to get the domain name of the service.
+		```
+		kubectl exec --namespace graylog -t -i pod/dnsutils -- nslookup <service name>
+		```
+		Running the command returns:
+		```
+		$ kubectl exec --namespace graylog -t -i pod/dnsutils -- nslookup graylog-elasticsearch-es-http
+		Server:         10.96.0.10
+		Address:        10.96.0.10#53
+
+		Name:   graylog-elasticsearch-es-http.graylog.svc.cluster.local
+		Address: 10.105.213.196
+		```
+		We are looking for the name of the elastic cluster. This is `graylog-elasticsearch-es-http.graylog.svc.cluster.local` in our case.
+	- Use the domain name to fill in the connection string.
+		`elasticsearch_hosts = http://graylog-elasticsearch-es-http.graylog.svc.cluster.local:9200`
+
+1. `mongodb_uri`\
+	Set the connection string for MongoDB. The same steps from finding the Elasticserach DNS entry apply for finding the Mongo DNS name if you are deploying mongo within the cluster. 
+
+	If you are using MongoDB Atlas, the connection string from the node.js present seems to work just fine as long as you update the username and password.
+
+
 
 Then apply the following command:
 ```
