@@ -20,11 +20,26 @@ spec:
         image: graylog/graylog:4.1-jre11
         # Testing command to prevent the pod from dying while under development. 
         command: ['sh', '-c', 'echo "Hello, Kubernetes!" && sleep 3600']
+        resources:
+      # Resources request and limits still need fine tuning.
+      # requests:
+      #   memory: "64Mi"
+      #   cpu: "250m"
+      # limits:
+      #   memory: "128Mi"
+      #   cpu: "500m"
         volumeMounts:
         - name: graylog-configmap
           mountPath: /etc/graylog/server/
+        - name: graylog-keystore
+        # Uses openjdk 11 by default. Change the major release version number if using a deferent version of java.
+        # Ex: /usr/local/openjdk-8/lib/security/
+          mountPath: /usr/local/openjdk-11/lib/security/
       restartPolicy: Always     
       volumes:
       - name: graylog-configmap
         configMap:
           name: graylog-configmap
+      - name: graylog-keystore
+        configMap:
+          name: graylog-keystore
