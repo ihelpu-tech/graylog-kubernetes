@@ -2,6 +2,13 @@
 # The following script will help with getting the Elasticsearch HTTPS certificate trusted by the Graylog instance.
 # The script was modified from a user from Github/Stackoverflow whose username escapes my memory. Thanks for your contribution anon.
 
+# Test for docker
+if ! command -v docker &> /dev/null
+then
+    printf "\033[1;31mError: docker could not be found\033[0m\n"
+    echo "Install docker: https://docs.docker.com/get-docker/"
+    exit
+fi
 
 echo "Step 1: Start a local container to copy the original cacerts file"
 

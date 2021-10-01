@@ -61,13 +61,17 @@ $ kubectl exec --namespace graylog -it pod/graylogutils -- curl -u "elastic:SQLX
 
 
 ## Code:
+The following is some code to assist with importing certs into Java.
 ```
 openssl s_client -showcerts -connect graylog-elasticsearch-es-http:9200 -servername graylog-elasticsearch-es-http  </dev/null | sed -ne '/-BEGIN CERTIFICATE-/,/-END CERTIFICATE-/p' > graylog-elasticsearch-es-http.pem
 
 openssl x509 -outform der -in graylog-elasticsearch-es-http.pem -out graylog-elasticsearch-es-http.der
 
 keytool -import -alias your-alias -keystore cacerts -file certificate.der
+```
 
+The following is a script I got from a StackOverflow user. Their username escapes my memory.
+``` 
 #!/bin/bash
 
 DOCKER_IMAGE="graylog/graylog:3.2"
