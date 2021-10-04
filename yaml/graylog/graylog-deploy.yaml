@@ -2,7 +2,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: graylog-deployment
-  namespace: graylog
+  # namespace: graylog
   labels:
     app: graylog
 spec:
@@ -29,7 +29,7 @@ spec:
       #   memory: "128Mi"
       #   cpu: "500m"
         volumeMounts:
-        - name: graylog-configmap
+        - name: graylog-settings
           mountPath: /etc/graylog/server/
         - name: graylog-keystore
         # Uses openjdk 11 by default. Change the major release version number if using a deferent version of java.
@@ -37,9 +37,9 @@ spec:
           mountPath: /usr/local/openjdk-11/lib/security/
       restartPolicy: Always     
       volumes:
-      - name: graylog-configmap
+      - name: graylog-settings
         configMap:
-          name: graylog-configmap
+          name: graylog-settings
       - name: graylog-keystore
         configMap:
           name: graylog-keystore

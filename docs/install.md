@@ -154,7 +154,7 @@ I would recommend reviewing how the manual installation works first before using
 
 The configuration for Graylog will be defined by a [ConfigMap][configmap]. The values of the configmap are based on the [Graylog conf file][graylogconf]. Changes will need to be made to suite your setup.
 
-The config map can be deployed manually by editing [graylog-configmap.yaml][samplemap]. 
+The config map can be deployed manually by editing [graylog-settings.yaml][samplemap]. 
 
 We need to make some basic changes to the graylog configuration before we apply the yaml file. If these changes aren't made, the deployment will fail. The critical changes are listed in the order they appeared in the [default graylog configuration][graylogconf].
 
@@ -189,7 +189,7 @@ There are also other options like timezone and root username that helpful to con
 
 Once you have made the changes to the configmap, apply it using the following command:
 ```
-kubectl apply -f yaml/graylog/graylog-configmap.yaml
+kubectl apply -f yaml/graylog/graylog-settings.yaml
 ```
 
 #### Deploy Graylog 
@@ -202,8 +202,29 @@ Now it's time for the fun part. Actually deploying Graylog. Let's get into it:
 
 
 ### Automatic Graylog Installation
-*The automatic deployment script is still a work in progress. Check back later.*
+Run the automatic script for easiest install:
+```
+./graylog-auto.bash
+```
+Most of the values are set at the automatic defaults. Just hit `Return/Enter`.
 
+Changes may need to be made to configmap to adjust graylog settings. Run the following to edit the graylog settings configmap:
+```
+kubectl edit configmap --namespace graylog graylog-settings 
+```
+
+Seemlessly apply the new configmap by restarting the deployment:
+```
+kubectl rollout restart --namespace graylog deployment graylog-deployment
+```
+
+Check to make sure the changes were to the pod applied by running:
+```
+kubectl get pod --namespace graylog | grep graylog-deployment
+$ graylog-deployment-76fc955ff-bd4jm
+
+kubectl exec --namespace graylog -it graylog-deployment-76fc955ff-bd4jm -- cat /etc/graylog/server/server.conf
+```
 
 
 
@@ -222,4 +243,4 @@ Now it's time for the fun part. Actually deploying Graylog. Let's get into it:
 
 [graylogdocs]: https://docs.graylog.org/en/4.1/
 [graylogconf]: https://github.com/Graylog2/graylog-docker/blob/4.1/config/graylog.conf
-[samplemap]: ../yaml/graylog/graylog-configmap.yaml
+[samplemap]: ../yaml/graylog/graylog-settings.yaml
