@@ -31,3 +31,6 @@ hs_err_pid*
 # testing
 /testing
 .DS_Store
+
+#Configuration files
+*.conf
