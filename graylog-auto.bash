@@ -55,7 +55,7 @@ while true; do
 	# [ "$password" = "$password2" ] && break || echo "Please try again"
 done
 echo
-LOGINPASSWORD=$(echo -n $LOGINPASSWORD | shasum -a 256)
+LOGINPASSWORD=$(echo -n $LOGINPASSWORD | shasum -a 256 | awk '{print$1}')
 echo "Login password set"
 echo
 
@@ -204,9 +204,9 @@ data:
     root_password_sha2 = $LOGINPASSWORD
     bin_dir = /usr/share/graylog/bin
     data_dir = /usr/share/graylog/data
-    plugin_dir = /usr/share/graylog/plugin
+    plugin_dir = /usr/share/graylog/plugins-default
     http_bind_address = $HTTPBIND
-    elasticsearch_hosts = https://$ELASTICURI:9200
+    elasticsearch_hosts = https://$ELASTICUSERNAME:$ELASTICPASSWORD@$ELASTICURI:9200
     rotation_strategy = count
     elasticsearch_max_docs_per_index = 20000000
     elasticsearch_max_number_of_indices = 5

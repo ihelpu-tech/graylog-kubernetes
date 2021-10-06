@@ -17,9 +17,9 @@ data:
     root_password_sha2 = 8c6976e5b5410415bde908bd4dee15dfb167a9c873fc4bb8a81f6f2ab448a918
     bin_dir = /usr/share/graylog/bin
     data_dir = /usr/share/graylog/data
-    plugin_dir = /usr/share/graylog/plugin
+    plugin_dir = /usr/share/graylog/plugins-default
     http_bind_address = 0.0.0.0:9000
-    elasticsearch_hosts = http://elasticsearch:9200
+    elasticsearch_hosts = https://<username>:<password>@elasticsearch:9200
     rotation_strategy = count
     elasticsearch_max_docs_per_index = 20000000
     elasticsearch_max_number_of_indices = 5
@@ -48,4 +48,8 @@ data:
     mongodb_max_connections = 1000
     mongodb_threads_allowed_to_block_multiplier = 5
     proxied_requests_thread_pool_size = 32
+    elasticsearch_discovery_default_user = elastic
+    elasticsearch_discovery_default_password = 
+    elasticsearch_version = 7
+    elasticsearch_discovery_default_scheme = https
    

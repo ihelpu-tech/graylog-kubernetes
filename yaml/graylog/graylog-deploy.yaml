@@ -35,6 +35,16 @@ spec:
         # Uses openjdk 11 by default. Change the major release version number if using a deferent version of java.
         # Ex: /usr/local/openjdk-8/lib/security/
           mountPath: /usr/local/openjdk-11/lib/security/
+        
+        livenessProbe:
+          exec:
+            command:
+              - /health_check.sh
+          initialDelaySeconds: 99
+          periodSeconds: 5
+          failureThreshold: 1
+        
+        
       restartPolicy: Always     
       volumes:
       - name: graylog-settings
