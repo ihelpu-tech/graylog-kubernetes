@@ -19,7 +19,8 @@ spec:
       - name: graylog
         image: graylog/graylog:4.1-jre11
         # Testing command to prevent the pod from dying while under development. 
-        command: ['sh', '-c', 'echo "Hello, Kubernetes!" && sleep 3600']
+        # command: ['sh', '-c', 'echo "Hello, Kubernetes!" && sleep 3600']
+        command: ['sh', '-c', '/usr/share/graylog/bin/graylogctl run']
         resources:
       # Resources request and limits still need fine tuning.
       # requests:
@@ -44,6 +45,12 @@ spec:
           periodSeconds: 5
           failureThreshold: 1
         
+        startupProbe:
+          exec:
+            command:
+              - /health_check.sh
+          failureThreshold: 30
+          periodSeconds: 10
         
       restartPolicy: Always     
       volumes:
