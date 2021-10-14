@@ -35,7 +35,7 @@ This guide will use Elastic Cloud on Kubernetes (ECK) to install Elasticsearch. 
 	* [Click to view Elastic Co's documentation for deploying Elasticsearch][elasticsearch] 
 	* We will deploy a modified version of Elastic's official file: 
 	```
-	kubectl apply -f yaml/elastic/deploy-elasticsearch.yaml
+	kubectl apply --namespace graylog -f yaml/elastic/deploy-elasticsearch.yaml
 	```
 
 	Elasticsearch 7.10 is the lastest version that is supported by graylog according to [Graylog's Documentation](https://docs.graylog.org/en/4.1/pages/installation.html#system-requirements).  

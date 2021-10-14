@@ -28,6 +28,14 @@ while true; do
     read -p "Auto generate secret? Y/n: " GENERATESECRET
     case $GENERATESECRET in
         [Yy]* ) 
+		# Test for pwgen
+		if ! command -v pwgen &> /dev/null
+		then
+			printf "\033[1;31mError: pwgen not installed!\033[0m\n"
+			echo "Install pwgen: apt-get install pwgen"
+			exit
+		fi
+		
 		echo "Generating secret..."
 		PASSWORDSECRET=$(pwgen -N 1 -s 96)
 		echo "Secret: $PASSWORDSECRET"
