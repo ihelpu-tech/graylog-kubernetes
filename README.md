@@ -1,10 +1,17 @@
 # Graylog running on Kubernetes
-### *This guide is still a work in progress.*
-Run Graylog using the official Docker image and only yaml.
+
+Run Graylog in a Kubernetes using the official Docker image.
+
+*This guide is now in beta.*
 
 ## View the installation guide:
-* [Install Graylog on Kubernetes][install]
+ [Install Graylog on Kubernetes][install]
 
+## Troubleshooting:
+Having trouble getting your deployment running? View the [troubleshooting guide][troubleshooting].
+
+## Issues 
+Help report bugs and other problems by submitting a new [issue][issue].
 
 ## About the author
 This guide was created by Meinhart Solutions LLC, doing business as (dba) [iHelpU.Tech][ihelputech].
@@ -15,3 +22,5 @@ This guide was created by Meinhart Solutions LLC, doing business as (dba) [iHelp
 [install]: docs/install.md
 [license]: LICENSE
 [ihelputech]: https://www.ihelpu.tech
+[troubleshooting]: docs/troubleshooting.md
+[issue]: https://github.com/ihelpu-tech/graylog-kubernetes/issues

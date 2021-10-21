@@ -11,12 +11,13 @@ read -p "Set namespace (graylog): " NAMESPACE
 NAMESPACE=${NAMESPACE:-graylog}
 echo
 
-echo "Set kubectl alias.\
-\
-Ex: kubectl, k, microk8s kubectl"
-read -p "Set alias (kubectl): " KUBEALIAS
-KUBEALIAS=${KUBEALIAS:-kubectl}
-echo
+### Depricated kubealias option for simplicity. 
+# echo "Set kubectl alias.\
+# \
+# Ex: kubectl, k, microk8s kubectl"
+# read -p "Set alias (kubectl): " KUBEALIAS
+# KUBEALIAS=${KUBEALIAS:-kubectl}
+# echo
 
 echo "=======Graylog Secret======="
 echo "You must set a secret that is used for password encryption and salting here."
@@ -94,8 +95,8 @@ while true; do
 			echo
 			
 			echo "Finding connection"
-			# echo "Kube alias: $KUBEALIAS"
-			ELASTICURI=$(($KUBEALIAS get svc -n $NAMESPACE | grep es-http) | awk '{print $1}')
+			# echo "Kube alias: kubectl"
+			ELASTICURI=$((kubectl get svc -n $NAMESPACE | grep es-http) | awk '{print $1}')
 			while true; do
 				unset yn
 				read -p "Use this URI: $ELASTICURI? Y/n: " yn
@@ -113,8 +114,8 @@ while true; do
 			echo
 
 			echo "Finding password..."
-			echo "Kube alias: $KUBEALIAS"
-			ELASTICPASSWORD=$($KUBEALIAS get secret --namespace $NAMESPACE $($KUBEALIAS get secret --namespace $NAMESPACE | grep es-elastic-user | awk '{print$1}') -o go-template='{{.data.elastic | base64decode }}')
+			echo "Kube alias: kubectl"
+			ELASTICPASSWORD=$(kubectl get secret --namespace $NAMESPACE $(kubectl get secret --namespace $NAMESPACE | grep es-elastic-user | awk '{print$1}') -o go-template='{{.data.elastic | base64decode }}')
 			while true; do
 				unset yn
 				read -p "Use this password: $ELASTICPASSWORD? Y/n: " yn
@@ -167,7 +168,6 @@ while true; do
 	echo
 	[ "$MONGOURI" = "$MONGOURI2" ] && break || echo "Please try again"
 done
-echo
 
 echo "=======Root Timezone======="
 echo "The time zone setting of the root user. See http://www.joda.org/joda-time/timezones.html for a list of valid time zones."
@@ -250,7 +250,7 @@ data:
 EOF
 
 # Apply configmap
-$KUBEALIAS apply -f $(pwd)/$CONFIGMAPNAME.yaml
+kubectl apply -f $(pwd)/$CONFIGMAPNAME.yaml
 # Cleanup
 rm $(pwd)/$CONFIGMAPNAME.yaml
 
@@ -260,7 +260,7 @@ echo
 echo "=======Additional Settings======="
 echo "Additoinal Graylog settings can be used by modifying the Graylog settings configmap."
 echo "See https://github.com/Graylog2/graylog-docker/blob/4.1/config/graylog.conf to view the full default configuration"
-echo "The config map can be modified by running: '$KUBEALIAS edit configmap --namespace $NAMESPACE ' "
+echo "The config map can be modified by running: 'kubectl edit configmap --namespace $NAMESPACE ' "
 echo
 
 echo "=======Creating Graylog Deployment======="
@@ -270,10 +270,10 @@ DEPLOYMENTPATH=${DEPLOYMENTPATH:-$(pwd)/yaml/graylog/graylog-deploy.yaml}
 echo
 
 echo "Deploying Graylog"
-$KUBEALIAS apply --namespace $NAMESPACE -f $DEPLOYMENTPATH
+kubectl apply --namespace $NAMESPACE -f $DEPLOYMENTPATH
 echo
 
-echo "Run 'watch -x $KUBEALIAS get all --namespace $NAMESPACE' to monitor deployment status"
+echo "Run 'watch -x kubectl get all --namespace $NAMESPACE' to monitor deployment status"
 
 # Cleanup vars
 unset ELASTICPASSWORD

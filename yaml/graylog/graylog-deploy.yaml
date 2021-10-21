@@ -1,3 +1,4 @@
+---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -21,14 +22,14 @@ spec:
         # Testing command to prevent the pod from dying while under development. 
         # command: ['sh', '-c', 'echo "Hello, Kubernetes!" && sleep 3600']
         command: ['sh', '-c', '/usr/share/graylog/bin/graylogctl run']
+        # Resources request and limits still need fine tuning.
         resources:
-      # Resources request and limits still need fine tuning.
-      # requests:
-      #   memory: "64Mi"
-      #   cpu: "250m"
-      # limits:
-      #   memory: "128Mi"
-      #   cpu: "500m"
+          requests:
+            memory: "1Gi"
+            cpu: "250m"
+          limits:
+            memory: "3Gi"
+            cpu: "1.5"
         volumeMounts:
         - name: graylog-settings
           mountPath: /etc/graylog/server/

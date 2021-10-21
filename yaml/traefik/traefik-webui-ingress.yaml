@@ -1,0 +1,45 @@
+# ---
+# apiVersion: traefik.containo.us/v1alpha1
+# kind: Middleware
+# metadata:
+#   name: traefik-redirect-scheme
+#   namespace: traefik-v2
+# spec:
+#   redirectScheme:
+#     scheme: https
+#     permanent: true
+#     port: "443"
+
+# ---
+# apiVersion: traefik.containo.us/v1alpha1
+# kind: IngressRoute
+# metadata:
+#   name: dashboard-http
+#   namespace: traefik-v2
+# spec:
+#   entryPoints:
+#     - web
+#   routes:
+#     - match: Host(`traefik.example.com`)
+#       kind: Rule
+#       middlewares:
+#         - name: traefik-redirect-scheme
+#       services:
+#         - name: api@internal
+#           kind: TraefikService
+          
+---
+apiVersion: traefik.containo.us/v1alpha1
+kind: IngressRoute
+metadata:
+  name: dashboard
+  namespace: traefik-v2
+spec:
+  entryPoints:
+    - web
+  routes:
+    - match: Host(`traefik.example.com`)
+      kind: Rule
+      services:
+        - name: api@internal
+          kind: TraefikService

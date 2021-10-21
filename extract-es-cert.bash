@@ -35,14 +35,14 @@ docker rm -v $ID
 
 echo "Step 2: Extract Elasticsearch HTTPS Certificate"
 
-# Let user select alias for kubectl. This is helpful if they are running Microk8s or another kubernetes service.
-unset KUBEALIAS
-echo "Set kubectl alias.\
-\
-Ex: kubectl, k, microk8s kubectl"
-read -p "Set alias (kubectl): " KUBEALIAS
-KUBEALIAS=${KUBEALIAS:-kubectl}
-echo
+### Depricated kubealias option for simplicity. 
+# unset KUBEALIAS
+# echo "Set kubectl alias.\
+# \
+# Ex: kubectl, k, microk8s kubectl"
+# read -p "Set alias (kubectl): " KUBEALIAS
+# KUBEALIAS=${KUBEALIAS:-kubectl}
+# echo
 
 # Let user select namespace
 unset NAMESPACE
@@ -52,7 +52,7 @@ echo
 
 # Automatically find the http secret
 unset SECRETNAME
-SECRETNAME=$(($KUBEALIAS get secrets -n $NAMESPACE | grep es-http-certs-public) | awk '{print $1}')
+SECRETNAME=$((kubectl get secrets -n $NAMESPACE | grep es-http-certs-public) | awk '{print $1}')
 echo "Found secret: $SECRETNAME"
 
 while true; do
@@ -64,7 +64,7 @@ while true; do
     esac
 done
 
-$KUBEALIAS get secret -n $NAMESPACE $SECRETNAME -o go-template='{{index .data "tls.crt" | base64decode }}' > es.pem
+kubectl get secret -n $NAMESPACE $SECRETNAME -o go-template='{{index .data "tls.crt" | base64decode }}' > es.pem
 
 # Step 2 test stop
 # exit
@@ -73,8 +73,8 @@ echo "Step 3: Import Elasticsearch HTTPS Certificate into Keystore"
 docker run -it --rm -v $(pwd):$(pwd) openjdk keytool -importcert -noprompt -keystore $(pwd)/cacerts -storepass changeit -alias elasticsearch-cert -file $(pwd)/es.pem
 
 echo "Step 4: Create K8s ConfigMap from keystore file"
-$KUBEALIAS create configmap --namespace $NAMESPACE graylog-keystore --from-file=cacerts
-# echo $($KUBEALIAS get configmap --namespace $NAMESPACE)
+kubectl create configmap --namespace $NAMESPACE graylog-keystore --from-file=cacerts
+# echo $(kubectl get configmap --namespace $NAMESPACE)
 
 echo "Step 5: Cleanup"
 rm -f es.pem cacerts

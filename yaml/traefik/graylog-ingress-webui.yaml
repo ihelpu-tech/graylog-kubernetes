@@ -1,0 +1,47 @@
+---
+apiVersion: traefik.containo.us/v1alpha1
+kind: Middleware
+metadata:
+  name: graylog-redirect-scheme
+  namespace: graylog
+spec:
+  redirectScheme:
+    scheme: https
+    permanent: true
+    port: "443"
+
+---
+apiVersion: traefik.containo.us/v1alpha1
+kind: IngressRoute
+metadata:
+  name: graylog-webui-http
+  namespace: graylog
+spec:
+  entryPoints:
+    - web
+  routes:
+    - match: Host(`graylog.example.com`)
+      kind: Rule
+      middlewares:
+        - name: graylog-redirect-scheme      
+      services:
+        - name: graylog-deployment-svc-tcp
+          port: 9000
+
+---
+apiVersion: traefik.containo.us/v1alpha1
+kind: IngressRoute
+metadata:
+  name: graylog-webui-https
+  namespace: graylog
+spec:
+  entryPoints:
+    - websecure
+  routes:
+    - match: Host(`graylog.example.com`)
+      kind: Rule
+      services:
+        - name: graylog-deployment-svc-tcp
+          port: 9000
+  tls:
+    certResolver: # Specify an ACME server such as Let's Encrypt. You can also use a locally deployed ACME server such as pebble.

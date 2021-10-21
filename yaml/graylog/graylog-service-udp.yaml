@@ -1,0 +1,23 @@
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app: graylog
+  name: graylog-deployment-svc-udp
+spec:
+  selector:
+    app: graylog
+  type: ClusterIP
+  ports:
+    # Copy the name, port, protocol, and target port for whatever input you need to monitor.
+    # Note that services cannot mix UDP and TCP. 
+    # It is recommended to use a ingress controller for stability and reduce cost.
+    - name: syslog
+      port: 5442
+      protocol: UDP
+      targetPort: 5442
+    - name: gelf
+      port: 12201
+      protocol: UDP
+      targetPort: 12201
