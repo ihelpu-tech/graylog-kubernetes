@@ -1,0 +1,56 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: graylog-configmap
+  namespace: graylog
+  labels:
+    app: graylog
+data:
+  # Values were retrived from the default graylog configuration file.
+  # https://raw.githubusercontent.com/Graylog2/graylog-docker/4.1/config/graylog.conf
+  # Comments where removed.
+  server.conf: |
+    # Welcome to k8s
+    is_master = false
+    node_id_file = /usr/share/graylog/data/config/node-id
+    password_secret = replacethiswithyourownsecret!
+    root_password_sha2 = 8c6976e5b5410415bde908bd4dee15dfb167a9c873fc4bb8a81f6f2ab448a918
+    bin_dir = /usr/share/graylog/bin
+    data_dir = /usr/share/graylog/data
+    plugin_dir = /usr/share/graylog/plugins-default
+    http_bind_address = 0.0.0.0:9000
+    elasticsearch_hosts = https://<username>:<password>@elasticsearch:9200
+    rotation_strategy = count
+    elasticsearch_max_docs_per_index = 20000000
+    elasticsearch_max_number_of_indices = 5
+    retention_strategy = delete
+    elasticsearch_shards = 1
+    elasticsearch_replicas = 0
+    elasticsearch_index_prefix = graylog
+    allow_leading_wildcard_searches = false
+    allow_highlighting = false
+    elasticsearch_analyzer = standard
+    output_batch_size = 500
+    output_flush_interval = 1
+    output_fault_count_threshold = 5
+    output_fault_penalty_seconds = 30
+    processbuffer_processors = 5
+    outputbuffer_processors = 3
+    processor_wait_strategy = blocking
+    ring_size = 65536
+    inputbuffer_ring_size = 65536
+    inputbuffer_processors = 2
+    inputbuffer_wait_strategy = blocking
+    message_journal_enabled = true
+    message_journal_dir = data/journal
+    lb_recognition_period_seconds = 3
+    mongodb_uri = mongodb://mongo/graylog
+    mongodb_max_connections = 1000
+    mongodb_threads_allowed_to_block_multiplier = 5
+    proxied_requests_thread_pool_size = 32
+    elasticsearch_discovery_default_user = elastic
+    elasticsearch_discovery_default_password = 
+    elasticsearch_version = 7
+    elasticsearch_discovery_default_scheme = https
+    elasticsearch_discovery_enabled = false
+    root_timezone = UTC   

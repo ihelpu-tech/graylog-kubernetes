@@ -52,4 +52,6 @@ data:
     elasticsearch_discovery_default_password = 
     elasticsearch_version = 7
     elasticsearch_discovery_default_scheme = https
+    elasticsearch_discovery_enabled = false
+    root_timezone = UTC
    
