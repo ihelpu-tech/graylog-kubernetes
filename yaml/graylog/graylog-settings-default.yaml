@@ -6,11 +6,16 @@ metadata:
   labels:
     app: graylog
 data:
-  # Values were retrived from the default graylog configuration file.
+  # Values were retrieved from the default graylog configuration file.
   # https://raw.githubusercontent.com/Graylog2/graylog-docker/4.1/config/graylog.conf
   # Comments where removed.
   server.conf: |
     # Welcome to k8s
+    # Values were retrieved from the default graylog configuration file.
+    # https://raw.githubusercontent.com/Graylog2/graylog-docker/4.1/config/graylog.conf
+    # Add or modify graylog settings below
+    # Comments where removed.
+    
     is_master = true
     node_id_file = /usr/share/graylog/data/config/node-id
     password_secret = replacethiswithyourownsecret!
@@ -48,10 +53,8 @@ data:
     mongodb_max_connections = 1000
     mongodb_threads_allowed_to_block_multiplier = 5
     proxied_requests_thread_pool_size = 32
-    elasticsearch_discovery_default_user = elastic
-    elasticsearch_discovery_default_password = 
     elasticsearch_version = 7
     elasticsearch_discovery_default_scheme = https
     elasticsearch_discovery_enabled = false
     root_timezone = UTC
-   
+    # additional_settings = here

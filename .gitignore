@@ -34,3 +34,11 @@ hs_err_pid*
 
 #Configuration files
 *.conf
+defined-master-settings.yaml
+defined-worker-settings.yaml
+graylog-settings-master.yaml
+graylog-settings-worker.yaml
+cacerts
+*.pem
+yaml/graylog/graylog-settings-master.yaml
+yaml/graylog/graylog-settings-worker.yaml

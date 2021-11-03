@@ -1,23 +1,120 @@
 #!/bin/bash
 
+# Declare function to print out script usage
+function usage() {
+    cat <<USAGE
+
+    Usage: $0 [args]
+
+    Options:
+        -n, --namespace:          	Set namespace.
+        --mongo-uri:			Set the MongoDB URI.
+	-r, --replicas:			Set the number of replicas.
+	-t, --timezone:			Set default timezone
+
+	-h, --help, --usage:    	Print this help message.
+     
+    Replicas:
+	-r | --replicas (default is 1)
+
+	Sets the number of replicas that will be used in the deployment.
+	For better stability, this is configured to use one master pod
+	and multiple worker pods. 
+	
+	Ex: -r 3 will create a deployment (graylog-master) with one master
+	and a deployment (graylog-worker) with two worker pods.
+
+	Ex: -r 1 will just create the graylog master deployment, but will
+	write the manifest file for the worker nodes to:
+	$(pwd)/yaml/graylog/graylog-deploy-worker.yaml
+	The spec.replicas can be adjusted to suite your needs. Use kubectl
+	to apply the manifest.
+
+    Timezone:
+	-t | --timezone
+
+	This will set the default timezone for the root user.
+	See http://www.joda.org/joda-time/timezones.html for a list of valid time zones.
+
+USAGE
+    exit 1
+}
+
+# Check to make sure that the replica option is a valid input
+function checkReplica () {
+	if ! [ "$REPLICAS" -eq "$REPLICAS" ] && [ $REPLICAS -gt 0 ];
+		then 
+			printf "\033[1;31mError: Invalid replica input! Must specify a whole number greater than 0.\033[0m\n"
+			exit 1
+	fi
+
+}
+
+# Set flags
+echo
+while [ "$1" != "" ]; do
+	case $1 in
+	-n | --namespace)
+		shift
+		NAMESPACE=$1
+		echo "Using namespace: $NAMESPACE"
+		;;
+
+	--mongo-uri)
+		shift
+		MONGOURI=$1
+		echo "Mongo URI: $MONGOURI"
+		;;
+
+	-r | --replicas)
+		shift
+		REPLICAS=$1
+		checkReplica
+		echo "Number of replicas: $REPLICAS"
+		;;
+
+	-t | --timezone)
+		shift
+		TIMEZONE=$1
+		echo "Timezone: $TIMEZONE"
+		;;
+	
+	-h | --help | --usage)
+		usage
+		exit 1
+		;;
+
+    	*)
+		printf "\033[1;31mError: Invalid option!\033[0m\n"
+		usage
+		exit 1
+		;;
+	esac
+	shift
+done
+
+echo
 echo "Starting automatic Graylog install."
 echo "See https://docs.graylog.org/en/4.1/pages/installation/manual_setup.html for details."
 echo 
 echo "=======Press 'Return/Enter' for Default Values======="
 echo
 
-unset NAMESPACE
-read -p "Set namespace (graylog): " NAMESPACE
-NAMESPACE=${NAMESPACE:-graylog}
-echo
+if [ "$NAMESPACE" = "" ]; then
+	read -p "Set namespace (graylog): " NAMESPACE
+	NAMESPACE=${NAMESPACE:-graylog}
+	echo
+fi
 
-### Depricated kubealias option for simplicity. 
-# echo "Set kubectl alias.\
-# \
-# Ex: kubectl, k, microk8s kubectl"
-# read -p "Set alias (kubectl): " KUBEALIAS
-# KUBEALIAS=${KUBEALIAS:-kubectl}
-# echo
+if [ "$REPLICAS" = "" ]; then
+	read -p "Set number of replicas (1): " REPLICAS
+	REPLICAS=${REPLICAS:-1}
+	checkReplica
+	echo
+fi
+
+declare -i REPLICAS
+
 
 echo "=======Graylog Secret======="
 echo "You must set a secret that is used for password encryption and salting here."
@@ -34,7 +131,7 @@ while true; do
 		then
 			printf "\033[1;31mError: pwgen not installed!\033[0m\n"
 			echo "Install pwgen: apt-get install pwgen"
-			exit
+			exit 1
 		fi
 		
 		echo "Generating secret..."
@@ -61,7 +158,6 @@ while true; do
 	read -s -p "Confirm password: " LOGINPASSWORD2
 	echo
 	[ "$LOGINPASSWORD" = "$LOGINPASSWORD2" ] && break || echo "Please try again"
-	# [ "$password" = "$password2" ] && break || echo "Please try again"
 done
 echo
 LOGINPASSWORD=$(echo -n $LOGINPASSWORD | shasum -a 256 | awk '{print$1}')
@@ -72,7 +168,7 @@ echo "=======Setup Elastic connection======="
 echo "Use extract-es-cert.bash script to find and setup elasticsearch connection."
 echo "It is recommended to use the script."
 while true; do
-	read -p "Automatically find and setup Elasticsearch connection? Y/n:  " FINDELASTIC
+	read -p "Automatically find and setup Elasticsearch connection? Y/n: " FINDELASTIC
 	case $FINDELASTIC in
 		[Yy]* )
 			echo "Starting automatic Elasticsearch setup..."
@@ -83,7 +179,7 @@ while true; do
 				case $yn in
 					[Yy]* ) 
 						echo "Starting find https certificate script..."
-						/bin/bash $(pwd)/extract-es-cert.bash
+						/bin/bash $(pwd)/extract-es-cert.bash --namespace $NAMESPACE
 						echo "HTTPS script complete"
 						echo 
 						break;;
@@ -92,10 +188,8 @@ while true; do
 				esac
 				unset yn
 			done
-			echo
-			
+						
 			echo "Finding connection"
-			# echo "Kube alias: kubectl"
 			ELASTICURI=$((kubectl get svc -n $NAMESPACE | grep es-http) | awk '{print $1}')
 			while true; do
 				unset yn
@@ -114,7 +208,6 @@ while true; do
 			echo
 
 			echo "Finding password..."
-			echo "Kube alias: kubectl"
 			ELASTICPASSWORD=$(kubectl get secret --namespace $NAMESPACE $(kubectl get secret --namespace $NAMESPACE | grep es-elastic-user | awk '{print$1}') -o go-template='{{.data.elastic | base64decode }}')
 			while true; do
 				unset yn
@@ -158,22 +251,33 @@ while true; do
 
 	esac
 done
+echo
 
 echo "=======Mongo URI======="
 echo "See https://docs.mongodb.com/manual/reference/connection-string/ for details"
-while true; do
-	read -p "Enter MongoDB URI: " MONGOURI
-	echo
-	read -p "Confirm URI: " MONGOURI2
-	echo
-	[ "$MONGOURI" = "$MONGOURI2" ] && break || echo "Please try again"
-done
+if [ "$MONGOURI" = "" ]; then
+	while true; do
+		read -p "Enter MongoDB URI: " MONGOURI
+		# echo
+		# read -p "Confirm URI: " MONGOURI2
+		# echo
+		# [ "$MONGOURI" = "$MONGOURI2" ] && break || echo "Please try again"
+		if [[ $MONGOURI == "" ]];
+			then printf "\033[1;31mError: Mongo URI not specified. Must enter URI.\033[0m\n"
+			else break
+		fi
+	done
+fi
+echo "Mongo URI: $MONGOURI"
+echo
 
-echo "=======Root Timezone======="
-echo "The time zone setting of the root user. See http://www.joda.org/joda-time/timezones.html for a list of valid time zones."
-unset TIMEZONE
-read -p "Set root timezone (UTC): " TIMEZONE
-TIMEZONE=${TIMEZONE:-UTC}
+if [ "$TIMEZONE" = "" ]; then
+	echo "=======Root Timezone======="
+	echo "The time zone setting of the root user. See http://www.joda.org/joda-time/timezones.html for a list of valid time zones."
+	read -p "Set root timezone (UTC): " TIMEZONE
+	TIMEZONE=${TIMEZONE:-UTC}
+	echo
+fi
 echo
 
 echo "=======HTTP bind address======="
@@ -183,97 +287,155 @@ read -p "Set HTTP bind address (0.0.0.0:9000): " HTTPBIND
 HTTPBIND=${HTTPBIND:-0.0.0.0:9000}
 echo
 
-echo "=======Creating Configmap======="
-echo "The config map will tell the Graylog Deployment what settings to use."
-unset CONFIGMAPNAME
-CONFIGMAPNAME=graylog-settings
+# Name of generated configmap manifest files
+MASTERCMNAME=graylog-settings-master
+WORKERCMNAME=graylog-settings-worker
 
+CMNAMESPACE=$NAMESPACE
+
+# Path the file will be mounted within the pod
 CONFIGPATH=/etc/graylog/server/
-# echo "Creating yaml file at $CONFIGPATH"
-cat <<EOF > $(pwd)/$CONFIGMAPNAME.yaml
----
-apiVersion: v1
-kind: ConfigMap
-metadata:
-  name: $CONFIGMAPNAME
-  namespace: $NAMESPACE
-  labels:
-    app: graylog
-data:
-  server.conf: |
-    # Welcome to k8s
-    # Values were retrived from the default graylog configuration file.
-    # https://raw.githubusercontent.com/Graylog2/graylog-docker/4.1/config/graylog.conf
-    # Comments where removed.
 
-    is_master = true
-    node_id_file = /usr/share/graylog/data/config/node-id
-    password_secret = $PASSWORDSECRET
-    root_password_sha2 = $LOGINPASSWORD
-    bin_dir = /usr/share/graylog/bin
-    data_dir = /usr/share/graylog/data
-    plugin_dir = /usr/share/graylog/plugins-default
-    http_bind_address = $HTTPBIND
-    elasticsearch_hosts = https://$ELASTICUSERNAME:$ELASTICPASSWORD@$ELASTICURI:9200
-    rotation_strategy = count
-    elasticsearch_max_docs_per_index = 20000000
-    elasticsearch_max_number_of_indices = 5
-    retention_strategy = delete
-    elasticsearch_shards = 1
-    elasticsearch_replicas = 0
-    elasticsearch_index_prefix = graylog
-    allow_leading_wildcard_searches = false
-    allow_highlighting = false
-    elasticsearch_analyzer = standard
-    output_batch_size = 500
-    output_flush_interval = 1
-    output_fault_count_threshold = 5
-    output_fault_penalty_seconds = 30
-    processbuffer_processors = 5
-    outputbuffer_processors = 3
-    processor_wait_strategy = blocking
-    ring_size = 65536
-    inputbuffer_ring_size = 65536
-    inputbuffer_processors = 2
-    inputbuffer_wait_strategy = blocking
-    message_journal_enabled = true
-    message_journal_dir = data/journal
-    lb_recognition_period_seconds = 3
-    mongodb_uri = $MONGOURI
-    mongodb_max_connections = 1000
-    mongodb_threads_allowed_to_block_multiplier = 5
-    proxied_requests_thread_pool_size = 32
-    elasticsearch_discovery_default_user = $ELASTICUSERNAME
-    elasticsearch_discovery_default_password = $ELASTICPASSWORD
-    # elasticsearch_version = 7
-    root_timezone = $TIMEZONE
-EOF
+function findConfigmapTemplate() {
+	if [ "$PODSETTINGSPATH" = "" ]; then
+		read -p "Enter path to the graylog settings configmap: ($(pwd)/yaml/graylog/graylog-settings-default.yaml) " PODSETTINGSPATH
+		PODSETTINGSPATH=${PODSETTINGSPATH:-$(pwd)/yaml/graylog/graylog-settings-default.yaml}
+	fi
+	echo "Using file at: $PODSETTINGSPATH"
+	if ! [ -f $PODSETTINGSPATH ]; then
+			printf "\033[1;31mError: graylog settings configmap not found.\033[0m\n"
+			exit 1
+	fi
+}
 
-# Apply configmap
-kubectl apply -f $(pwd)/$CONFIGMAPNAME.yaml
-# Cleanup
-rm $(pwd)/$CONFIGMAPNAME.yaml
+function setConfigmap() {
+	sed ' # Use sed to modify default config
+		# Specify manifest details:
+		s/name:.*/name: '"$CMNAME"'/; 
+		s/namespace:.*/namespace: '"$CMNAMESPACE"'/; 
 
-echo
-echo "=======Configmap Deployed======="
-echo
+		# Set server.conf varibles:
+		s/is_master.*/is_master \= '"$ISMASTER"'/; 
+		s/password_secret.*/password_secret \= '"$PASSWORDSECRET"'/; 
+		s/root_password_sha2.*/root_password_sha2 \= '"$LOGINPASSWORD"'/; 
+		s#http_bind_address.*#http_bind_address \= '"$HTTPBIND"'#; 
+		s/elasticsearch_hosts.*/elasticsearch_hosts \= https:\/\/'"$ELASTICUSERNAME"':'"$ELASTICPASSWORD"'@'"$ELASTICURI"':9200/;
+		s#mongodb_uri.*#mongodb_uri \= '"$MONGOURI"'#; 
+		s#root_timezone.*#root_timezone \= '"$TIMEZONE"'#; 
+	' $INPUTSETTINGS > $OUTPUTSETTINGS
+}
+
+function findDeploymentTemplate() {
+	if [ "$DEPLOYMENTSETTINGSPATH" = "" ]; then
+		read -p "Enter path to the deployment config: ($(pwd)/yaml/graylog/graylog-deploy-default.yaml) " DEPLOYMENTSETTINGSPATH
+		DEPLOYMENTSETTINGSPATH=${DEPLOYMENTSETTINGSPATH:-$(pwd)/yaml/graylog/graylog-deploy-default.yaml}
+	fi
+	echo "Using file at: $DEPLOYMENTSETTINGSPATH"
+	if ! [ -f $DEPLOYMENTSETTINGSPATH ]; then
+			printf "\033[1;31mError: deployment manifest not found.\033[0m\n"
+			exit 1
+	fi
+}
+
+function setDeployment() {
+	sed ' # Use sed to modify deployment.
+		s/name\:.graylog-deployment/name\:\ '"$DEPLOYMENTNAME"'/
+		s/name\:.graylog-settings-master/name\:\ '"$SETTINGSNAME"'/
+		s/replicas\:.[0-9]/replicas\:\ '"$DEPLOYMENTREPLICAS"'/
+	' $INPUTDEPLOYMENT > $OUTPUTDEPLOYMENT
+}
+
+# Test for multiple replicas
+if [ $REPLICAS -gt 1 ];
+	then 
+		echo "I am more"
+		echo
+
+		# Set master config
+		echo "=======Creating Configmap======="
+		findConfigmapTemplate
+		INPUTSETTINGS=$PODSETTINGSPATH
+		CMNAME=$MASTERCMNAME
+		ISMASTER=true
+		OUTPUTSETTINGS=yaml/graylog/graylog-settings-master.yaml
+		setConfigmap
+		kubectl apply -f $OUTPUTSETTINGS
+		
+		# Set worker config
+		findConfigmapTemplate
+		INPUTSETTINGS=$PODSETTINGSPATH
+		CMNAME=$WORKERCMNAME
+		ISMASTER=false
+		OUTPUTSETTINGS=yaml/graylog/graylog-settings-worker.yaml
+		setConfigmap
+		kubectl apply -f $OUTPUTSETTINGS
+		echo
+
+		echo "=======Creating Deployment======="
+		#Set Master Deployment
+		# Step 1: Find the deployment template
+		findDeploymentTemplate
+		INPUTDEPLOYMENT=$DEPLOYMENTSETTINGSPATH
+		OUTPUTDEPLOYMENT=yaml/graylog/graylog-deploy-master.yaml
+
+		# Step 2: Configure the deployment based on the template.
+		DEPLOYMENTNAME=graylog-master
+		SETTINGSNAME=$MASTERCMNAME
+		DEPLOYMENTREPLICAS=1
+		setDeployment
+		# kubectl --namespace $NAMESPACE apply -f $OUTPUTDEPLOYMENT
+		
+		#Set Worker Deployment
+		findDeploymentTemplate
+		INPUTDEPLOYMENT=$DEPLOYMENTSETTINGSPATH
+		OUTPUTDEPLOYMENT=yaml/graylog/graylog-deploy-worker.yaml
+		
+		DEPLOYMENTNAME=graylog-worker
+		SETTINGSNAME=$WORKERCMNAME
+		DEPLOYMENTREPLICAS=$(($REPLICAS - 1))		# The number of the replicas for the work deployment needs to be one less than the user defined.
+		setDeployment
+		# kubectl --namespace $NAMESPACE apply -f $OUTPUTDEPLOYMENT
+
+	else 
+		echo "I am one"
+		echo
+		
+		# Configmap
+		echo "=======Creating Configmap======="
+		findConfigmapTemplate
+		INPUTSETTINGS=$PODSETTINGSPATH
+		CMNAME=$MASTERCMNAME
+		ISMASTER=true
+		OUTPUTSETTINGS=yaml/graylog/graylog-settings-master.yaml
+		setConfigmap
+		kubectl apply -f $OUTPUTSETTINGS
+		echo
+
+		#Deployment
+		echo "=======Creating Deployment======="
+		# Step 1: Find the deployment template
+		findDeploymentTemplate
+		INPUTDEPLOYMENT=$DEPLOYMENTSETTINGSPATH
+		OUTPUTDEPLOYMENT=yaml/graylog/graylog-deploy-master.yaml
+
+		# Step 2: Configure the deployment based on the template.
+		DEPLOYMENTNAME=graylog-master
+		SETTINGSNAME=$MASTERCMNAME
+		DEPLOYMENTREPLICAS=1
+		setDeployment
+		# kubectl --namespace $NAMESPACE apply -f $OUTPUTDEPLOYMENT
+
+fi
+
 echo "=======Additional Settings======="
 echo "Additoinal Graylog settings can be used by modifying the Graylog settings configmap."
 echo "See https://github.com/Graylog2/graylog-docker/blob/4.1/config/graylog.conf to view the full default configuration"
 echo "The config map can be modified by running: 'kubectl edit configmap --namespace $NAMESPACE ' "
 echo
 
-echo "=======Creating Graylog Deployment======="
-unset DEPLOYMENTPATH
-read -p "Set path to graylog deployment yaml ($(pwd)/yaml/graylog/graylog-deploy.yaml): " DEPLOYMENTPATH
-DEPLOYMENTPATH=${DEPLOYMENTPATH:-$(pwd)/yaml/graylog/graylog-deploy.yaml}
-echo
-
-echo "Deploying Graylog"
-kubectl apply --namespace $NAMESPACE -f $DEPLOYMENTPATH
-echo
-
+echo "=======Configmap and Deployment configured======="
 echo "Run 'watch -x kubectl get all --namespace $NAMESPACE' to monitor deployment status"
+echo
 
 # Cleanup vars
 unset ELASTICPASSWORD
@@ -281,3 +443,6 @@ unset PASSWORDSECRET
 unset GENERATESECRET
 unset LOGINPASSWORD
 unset LOGINPASSWORD2
+
+
+exit 0
