@@ -54,25 +54,16 @@ read -p "Set Java version (11): " JAVAVERSION
 JAVAVERSION=${JAVAVERSION:-11}
 echo "Java Version: $JAVAVERSION"
 
-ID=$(docker create $DOCKER_IMAGE)
+ID=$(sudo docker create $DOCKER_IMAGE)
 echo $ID
-docker cp $ID:/usr/local/openjdk-$JAVAVERSION/lib/security/cacerts - | tar xvf - > cacerts
+sudo docker cp $ID:/usr/local/openjdk-$JAVAVERSION/lib/security/cacerts - | tar xvf - > cacerts
 chmod 755 cacerts
-docker rm -v $ID
+sudo docker rm -v $ID
 
 # Step 1 test stop
 # exit
 
 echo "Step 2: Extract Elasticsearch HTTPS Certificate"
-
-### Depricated kubealias option for simplicity. 
-# unset KUBEALIAS
-# echo "Set kubectl alias.\
-# \
-# Ex: kubectl, k, microk8s kubectl"
-# read -p "Set alias (kubectl): " KUBEALIAS
-# KUBEALIAS=${KUBEALIAS:-kubectl}
-# echo
 
 # Let user select namespace
 # unset NAMESPACE
@@ -102,11 +93,39 @@ kubectl get secret -n $NAMESPACE $SECRETNAME -o go-template='{{index .data "tls.
 # exit
 
 echo "Step 3: Import Elasticsearch HTTPS Certificate into Keystore"
-docker run -it --rm -v $(pwd):$(pwd) openjdk keytool -importcert -noprompt -keystore $(pwd)/cacerts -storepass changeit -alias elasticsearch-cert -file $(pwd)/es.pem
+sudo docker run -it --rm -v $(pwd):$(pwd) openjdk keytool -importcert -noprompt -keystore $(pwd)/cacerts -storepass changeit -alias elasticsearch-cert -file $(pwd)/es.pem
 
 echo "Step 4: Create K8s ConfigMap from keystore file"
-kubectl create configmap --namespace $NAMESPACE graylog-keystore --from-file=cacerts
+# kubectl create configmap --namespace $NAMESPACE graylog-keystore --from-file=cacerts
 # echo $(kubectl get configmap --namespace $NAMESPACE)
+KEYSTOREPRESENT=$(kubectl get configmap --namespace $NAMESPACE | grep graylog-keystore | awk '{print $1}')
+if [ -n "$KEYSTOREPRESENT" ]
+    then
+        echo "Keystore is already present"
+        
+        while true; do
+            read -p "Do you want to regenerate the keystore configmap? Y/n: " yn
+            case $yn in
+                [Yy]* ) 
+                    echo "Regenerating config";
+                    kubectl delete configmap --namespace $NAMESPACE graylog-keystore;
+                    kubectl create configmap --namespace $NAMESPACE graylog-keystore --from-file=cacerts;
+                    break;;
+
+                [Nn]* ) 
+                    echo "Skipping...";
+                    break;;
+
+                * ) 
+                    echo "Please answer yes or no.";;
+            esac
+        done
+    
+    else
+        echo "Keystore is not present. Creating one now..."
+        kubectl create configmap --namespace $NAMESPACE graylog-keystore --from-file=cacerts
+fi
+kubectl get configmap --namespace $NAMESPACE
 
 echo "Step 5: Cleanup"
 rm -f es.pem cacerts

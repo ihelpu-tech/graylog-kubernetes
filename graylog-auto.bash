@@ -14,7 +14,24 @@ function usage() {
 
 	-h, --help, --usage:    	Print this help message.
      
-    Replicas:
+    MongoDB URI:
+	--mongo-uri
+
+	Sets the MongoDB URI. Make sure to use quotes around the URI when
+	entering it as a flag. Otherwise, the shell may intepret special
+	charactors in the URI as arguments.
+
+	Ex: 
+	graylog-auto --mongo-uri mongodb+srv://user:password@example.com/database?retryWrites=true&w=majority
+	This would be intepreted in the shell as:
+	mongodb+srv://user:password@example.com/database?retryWrites=true AND
+	w=majority
+
+	The correct way to set this flag is to put the URI in quotes so the
+	shell parses the flag correctly:
+	graylog-auto --mongo-uri "mongodb+srv://user:password@example.com/database?retryWrites=true&w=majority"
+	
+	Replicas:
 	-r | --replicas (default is 1)
 
 	Sets the number of replicas that will be used in the deployment.
@@ -63,6 +80,7 @@ while [ "$1" != "" ]; do
 	--mongo-uri)
 		shift
 		MONGOURI=$1
+		declare -r MONGOURI
 		echo "Mongo URI: $MONGOURI"
 		;;
 
