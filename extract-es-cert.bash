@@ -10,13 +10,43 @@ then
     exit
 fi
 
+# Declare function to print out script usage
+function usage() {
+    cat <<USAGE
+
+    Usage: $0 [-n namespace]
+
+    Options:
+        -n, --namespace:            Set namespace
+        
+USAGE
+    exit 1
+}
+
+# Set flags
+while [ "$1" != "" ]; do
+	case $1 in
+	-n | --namespace)
+		shift
+		NAMESPACE=$1
+		;;
+	
+    *)
+		printf "\033[1;31mError: Invalid option!\033[0m\n"
+		usage
+		exit 1
+		;;
+	esac
+	shift
+done
+
 echo "Step 1: Start a local container to copy the original cacerts file"
 
 #Modified to let the user choose which version of the Graylog Docker image they want to use.
 #Defaults to Graylog 4.1 with JRE 11.
 unset DOCKER_IMAGE
-read -p "Set Graylog Docker image (graylog/graylog:4.1-jre11): " DOCKER_IMAGE
-DOCKER_IMAGE=${DOCKER_IMAGE:-graylog/graylog:4.1-jre11}
+read -p "Set Graylog Docker image (graylog/graylog:4.2-jre11): " DOCKER_IMAGE
+DOCKER_IMAGE=${DOCKER_IMAGE:-graylog/graylog:4.2-jre11}
 echo "Docker Image: $DOCKER_IMAGE"
 
 unset JAVAVERSION
@@ -45,10 +75,12 @@ echo "Step 2: Extract Elasticsearch HTTPS Certificate"
 # echo
 
 # Let user select namespace
-unset NAMESPACE
-read -p "Set namespace (graylog): " NAMESPACE
-NAMESPACE=${NAMESPACE:-graylog}
-echo
+# unset NAMESPACE
+if [ "$NAMESPACE" = "" ]; then
+	read -p "Set namespace (graylog): " NAMESPACE
+	NAMESPACE=${NAMESPACE:-graylog}
+	echo
+fi
 
 # Automatically find the http secret
 unset SECRETNAME
