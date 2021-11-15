@@ -18,7 +18,7 @@ spec:
     spec:
       containers:
       - name: graylog
-        image: graylog/graylog:4.2-jre11
+        image: graylog/graylog:4.2.1-jre11
         
         # Add additional container ports for each input.
         ports:
@@ -28,7 +28,7 @@ spec:
         
         # Testing command to prevent the pod from dying while under development. 
         # command: ['sh', '-c', 'echo "Hello, Kubernetes!" && sleep 3600']
-        command: ['sh', '-c', '/usr/share/graylog/bin/graylogctl run']
+        command: ['sh', '-c', '/usr/share/graylog/bin/graylogctl run > /usr/share/graylog/log/graylog-server.log']
         
         # Resources request and limits still need fine tuning.
         resources:
