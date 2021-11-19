@@ -401,7 +401,7 @@ if [ $REPLICAS -gt 1 ];
 		SETTINGSNAME=$MASTERCMNAME
 		DEPLOYMENTREPLICAS=1
 		setDeployment
-		# kubectl --namespace $NAMESPACE apply -f $OUTPUTDEPLOYMENT
+		kubectl --namespace $NAMESPACE apply -f $OUTPUTDEPLOYMENT
 		
 		#Set Worker Deployment
 		findDeploymentTemplate
@@ -412,7 +412,7 @@ if [ $REPLICAS -gt 1 ];
 		SETTINGSNAME=$WORKERCMNAME
 		DEPLOYMENTREPLICAS=$(($REPLICAS - 1))		# The number of the replicas for the work deployment needs to be one less than the user defined.
 		setDeployment
-		# kubectl --namespace $NAMESPACE apply -f $OUTPUTDEPLOYMENT
+		kubectl --namespace $NAMESPACE apply -f $OUTPUTDEPLOYMENT
 
 	else 
 		echo "I am one"
@@ -441,7 +441,7 @@ if [ $REPLICAS -gt 1 ];
 		SETTINGSNAME=$MASTERCMNAME
 		DEPLOYMENTREPLICAS=1
 		setDeployment
-		# kubectl --namespace $NAMESPACE apply -f $OUTPUTDEPLOYMENT
+		kubectl --namespace $NAMESPACE apply -f $OUTPUTDEPLOYMENT
 
 fi
 

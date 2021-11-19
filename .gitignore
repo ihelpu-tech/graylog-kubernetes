@@ -42,3 +42,5 @@ cacerts
 *.pem
 yaml/graylog/graylog-settings-master.yaml
 yaml/graylog/graylog-settings-worker.yaml
+yaml/graylog/graylog-deploy-master.yaml
+yaml/graylog/graylog-deploy-worker.yaml

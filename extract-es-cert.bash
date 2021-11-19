@@ -54,6 +54,8 @@ read -p "Set Java version (11): " JAVAVERSION
 JAVAVERSION=${JAVAVERSION:-11}
 echo "Java Version: $JAVAVERSION"
 
+echo "Some systems require root access to create docker images."
+echo "Please enter 'sudo' password: "
 ID=$(sudo docker create $DOCKER_IMAGE)
 echo $ID
 sudo docker cp $ID:/usr/local/openjdk-$JAVAVERSION/lib/security/cacerts - | tar xvf - > cacerts
