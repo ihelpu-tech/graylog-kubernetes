@@ -1,4 +1,33 @@
 ---
+kind: PersistentVolume
+apiVersion: v1
+metadata:
+  name: geoip-pv
+  labels:
+    type: local
+spec:
+  storageClassName: manual
+  capacity:
+    storage: 100M
+  accessModes:
+    - ReadWriteOnce
+  hostPath:
+    path: "/mnt/data"
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  labels:
+    app: graylog
+  name: geoip-pv-claim
+spec:
+  storageClassName: manual
+  accessModes:
+  - ReadWriteOnce
+  resources:
+    requests:
+      storage: 100M
+---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -16,6 +45,33 @@ spec:
       labels:
         app: graylog
     spec:
+      volumes:
+      - name: graylog-settings-master
+        configMap:
+          name: graylog-settings-master
+      - name: graylog-keystore
+        configMap:
+          name: graylog-keystore
+      - name: geoip-database
+        persistentVolumeClaim:
+          claimName: geoip-pv-claim
+
+      initContainers:
+        - name: grant-permissions
+          image: busybox
+          securityContext:
+            runAsUser: 0
+          imagePullPolicy: "IfNotPresent"
+          command:
+          - 'sh'
+          - '-c'
+          - 'mkdir -p /geoip/data ; chown -R 1100:1100 /geoip/data/'
+          
+          volumeMounts:
+          - name: geoip-database
+            mountPath: /geoip
+
+
       containers:
       - name: graylog
         image: graylog/graylog:4.2.1-jre11
@@ -55,20 +111,16 @@ spec:
           periodSeconds: 10
         
         volumeMounts:
+        # ConfigMaps
         - name: graylog-settings-master
           mountPath: /etc/graylog/server/
         - name: graylog-keystore
           # Uses openjdk 11 by default. Change the major release version number if using a deferent version of java.
           # Ex: /usr/local/openjdk-8/lib/security/
           mountPath: /usr/local/openjdk-11/lib/security/
-      
-      volumes:
-      - name: graylog-settings-master
-        configMap:
-          name: graylog-settings-master
-      - name: graylog-keystore
-        configMap:
-          name: graylog-keystore
+        # Persistent Volume Claims
+        - name: geoip-database
+          mountPath: /geoip
         
         
       restartPolicy: Always     

@@ -394,7 +394,7 @@ if [ $REPLICAS -gt 1 ];
 		# Step 1: Find the deployment template
 		findDeploymentTemplate
 		INPUTDEPLOYMENT=$DEPLOYMENTSETTINGSPATH
-		OUTPUTDEPLOYMENT=yaml/graylog/graylog-deploy-master.yaml
+		OUTPUTDEPLOYMENT=$(pwd)/yaml/graylog/graylog-deploy-master.yaml
 
 		# Step 2: Configure the deployment based on the template.
 		DEPLOYMENTNAME=graylog-master
@@ -406,7 +406,7 @@ if [ $REPLICAS -gt 1 ];
 		#Set Worker Deployment
 		findDeploymentTemplate
 		INPUTDEPLOYMENT=$DEPLOYMENTSETTINGSPATH
-		OUTPUTDEPLOYMENT=yaml/graylog/graylog-deploy-worker.yaml
+		OUTPUTDEPLOYMENT=$(pwd)/yaml/graylog/graylog-deploy-worker.yaml
 		
 		DEPLOYMENTNAME=graylog-worker
 		SETTINGSNAME=$WORKERCMNAME
@@ -434,7 +434,7 @@ if [ $REPLICAS -gt 1 ];
 		# Step 1: Find the deployment template
 		findDeploymentTemplate
 		INPUTDEPLOYMENT=$DEPLOYMENTSETTINGSPATH
-		OUTPUTDEPLOYMENT=yaml/graylog/graylog-deploy-master.yaml
+		OUTPUTDEPLOYMENT=$(pwd)/yaml/graylog/graylog-deploy-master.yaml
 
 		# Step 2: Configure the deployment based on the template.
 		DEPLOYMENTNAME=graylog-master

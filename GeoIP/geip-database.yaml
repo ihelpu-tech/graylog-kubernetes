@@ -2,7 +2,7 @@
 kind: PersistentVolume
 apiVersion: v1
 metadata:
-  name: postgres-pv
+  name: geoip-pv
   labels:
     type: local
 spec:
@@ -19,7 +19,7 @@ kind: PersistentVolumeClaim
 metadata:
   labels:
     app: graylog
-  name: postgres-pv-claim
+  name: geoip-pv-claim
 spec:
   storageClassName: manual
   accessModes:
